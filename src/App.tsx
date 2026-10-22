@@ -1,15 +1,38 @@
 import { useMemo, useState } from "react";
-import { KanbanSquare } from "lucide-react";
+import { KanbanSquare, Loader2, AlertCircle } from "lucide-react";
 import { COLUMNS, type Task } from "./types";
 import { useBoard } from "./hooks/useBoard";
 import { Column } from "./components/Column";
 
 export default function App() {
-  const { tasks, addTask, deleteTask, moveTask } = useBoard();
+  const { tasks, addTask, deleteTask, moveTask, loading, error } = useBoard();
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const allTasks = useMemo<Task[]>(() => Object.values(tasks).sort((a, b) => a.createdAt - b.createdAt), [tasks]);
   const total = allTasks.length;
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-sm">Loading tasks...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-destructive">
+          <AlertCircle className="h-8 w-8" />
+          <p className="text-sm font-medium">Failed to connect to database</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col bg-background">

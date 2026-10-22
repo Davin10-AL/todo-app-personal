@@ -90,6 +90,7 @@ export function Column({
             <TaskCard
               task={task}
               onDelete={onDelete}
+              onAdvance={onMove}
               isDragging={draggingId === task.id}
               isDropTarget={dropIndex === index}
               onDragStart={(e) => {
@@ -113,9 +114,11 @@ export function Column({
           </div>
         )}
 
-        <div className="mt-1">
-          <AddTaskButton columnId={column.id} onAdd={(title, desc) => onAdd(column.id, title, desc)} />
-        </div>
+        {column.id === "todo" && (
+          <div className="mt-1">
+            <AddTaskButton columnId={column.id} onAdd={(title, desc) => onAdd(column.id, title, desc)} />
+          </div>
+        )}
       </div>
     </section>
   );
