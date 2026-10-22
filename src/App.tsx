@@ -38,7 +38,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border/60 bg-card/50 px-4 backdrop-blur sm:px-6">
+      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-border/60 bg-card/50 px-4 backdrop-blur sm:px-6">
+        {/* Kiri — logo & info */}
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <KanbanSquare className="h-5 w-5" />
@@ -48,6 +49,15 @@ export default function App() {
             <p className="text-xs text-muted-foreground">{total} task{total === 1 ? "" : "s"} total</p>
           </div>
         </div>
+
+        {/* Tengah — judul utama (absolute agar benar-benar center) */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <span className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+            Dav Todo
+          </span>
+        </div>
+
+        {/* Kanan — column stats & theme toggle */}
         <div className="flex items-center gap-2">
           <div className="hidden items-center gap-1.5 sm:flex">
             {COLUMNS.map((c) => (
