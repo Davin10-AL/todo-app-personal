@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, CheckCircle2, Circle, CheckCheck, Pencil, X, Check } from "lucide-react";
-import type { ColumnId, Task } from "../types";
+import type { Category, ColumnId, Task } from "../types";
+import { CATEGORIES } from "../types";
 import { cn } from "../lib/utils";
 
 const NEXT_COLUMN: Record<ColumnId, ColumnId | null> = {
@@ -12,7 +13,7 @@ const NEXT_COLUMN: Record<ColumnId, ColumnId | null> = {
 interface Props {
   task: Task;
   onDelete: (id: string) => void;
-  onEdit: (id: string, title: string, description?: string) => void;
+  onEdit: (id: string, title: string, description?: string, category?: Category) => void;
   onAdvance: (id: string, toColumn: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onDragEnd: () => void;
@@ -38,6 +39,7 @@ export function TaskCard({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDesc, setEditDesc] = useState(task.description ?? "");
+  const [editCategory, setEditCategory] = useState<Category | undefined>(task.category);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,6 @@ export function TaskCard({
     }
   }, [isDropTarget]);
 
-  // Focus title saat edit mode terbuka
   useEffect(() => {
     if (isEditing) {
       titleRef.current?.focus();
@@ -58,16 +59,15 @@ export function TaskCard({
   const openEdit = () => {
     setEditTitle(task.title);
     setEditDesc(task.description ?? "");
+    setEditCategory(task.category);
     setIsEditing(true);
   };
 
-  const cancelEdit = () => {
-    setIsEditing(false);
-  };
+  const cancelEdit = () => setIsEditing(false);
 
   const submitEdit = () => {
     if (!editTitle.trim()) return;
-    onEdit(task.id, editTitle, editDesc);
+    onEdit(task.id, editTitle, editDesc, editCategory);
     setIsEditing(false);
   };
 
@@ -75,7 +75,9 @@ export function TaskCard({
   const isDone = task.columnId === "done";
   const CheckIcon = isDone ? CheckCheck : nextColumn ? Circle : CheckCircle2;
 
-  // Mode edit — tampilkan form inline
+  const categoryMeta = task.category ? CATEGORIES.find((c) => c.id === task.category) : null;
+
+  // ── Edit mode ────────────────────────────────────────────────────────────
   if (isEditing) {
     return (
       <div
@@ -88,10 +90,7 @@ export function TaskCard({
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submitEdit();
-            }
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(); }
             if (e.key === "Escape") cancelEdit();
           }}
           placeholder="Task title…"
@@ -102,40 +101,61 @@ export function TaskCard({
           value={editDesc}
           onChange={(e) => setEditDesc(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submitEdit();
-            }
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(); }
             if (e.key === "Escape") cancelEdit();
           }}
           placeholder="Description (optional)…"
           rows={2}
           className="mt-1 w-full resize-none bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
-        <div className="mt-2.5 flex items-center gap-2">
+
+        {/* Category picker */}
+        <div className="mt-2.5">
+          <p className="mb-1.5 text-xs text-muted-foreground">Category</p>
+          <div className="flex flex-wrap gap-1.5">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setEditCategory(editCategory === cat.id ? undefined : cat.id)}
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-150",
+                  cat.color,
+                  cat.textColor,
+                  editCategory === cat.id
+                    ? "ring-2 ring-offset-1 ring-offset-card opacity-100"
+                    : "opacity-60 hover:opacity-100",
+                  editCategory === cat.id && cat.textColor.replace("text-", "ring-"),
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
           <button
             onClick={submitEdit}
             disabled={!editTitle.trim()}
             aria-label="Save changes"
             className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
           >
-            <Check className="h-3 w-3" />
-            Save
+            <Check className="h-3 w-3" /> Save
           </button>
           <button
             onClick={cancelEdit}
             aria-label="Cancel edit"
             className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
           >
-            <X className="h-3 w-3" />
-            Cancel
+            <X className="h-3 w-3" /> Cancel
           </button>
         </div>
       </div>
     );
   }
 
-  // Mode normal
+  // ── Normal mode ───────────────────────────────────────────────────────────
   return (
     <div
       ref={cardRef}
@@ -171,7 +191,7 @@ export function TaskCard({
           <CheckIcon className="h-4 w-4" />
         </button>
 
-        {/* Title & description */}
+        {/* Title, description, category badge */}
         <div className="min-w-0 flex-1">
           <p
             className={cn(
@@ -182,15 +202,30 @@ export function TaskCard({
             {task.title}
           </p>
           {task.description && (
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-3">{task.description}</p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-3">
+              {task.description}
+            </p>
+          )}
+          {categoryMeta && (
+            <span
+              className={cn(
+                "mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+                categoryMeta.color,
+                categoryMeta.textColor,
+              )}
+            >
+              {categoryMeta.label}
+            </span>
           )}
         </div>
 
-        {/* Action buttons — Edit & Delete */}
-        <div className={cn(
-          "flex shrink-0 items-center gap-0.5 transition-all duration-200",
-          showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-        )}>
+        {/* Edit & Delete buttons */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-0.5 transition-all duration-200",
+            showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
+        >
           <button
             onClick={openEdit}
             aria-label="Edit task"

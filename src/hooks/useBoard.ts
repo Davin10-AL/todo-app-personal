@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ColumnId, Task, Tasks } from "../types";
+import type { Category, ColumnId, Task, Tasks } from "../types";
 
 const uid = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -12,6 +12,7 @@ function rowToTask(row: {
   id: string;
   title: string;
   description: string | null;
+  category: string | null;
   column_id: string;
   created_at: number;
 }): Task {
@@ -19,6 +20,7 @@ function rowToTask(row: {
     id: row.id,
     title: row.title,
     description: row.description ?? undefined,
+    category: (row.category as Category) ?? undefined,
     columnId: row.column_id as ColumnId,
     createdAt: row.created_at,
   };
@@ -91,7 +93,7 @@ export function useBoard() {
   }, []);
 
   const addTask = useCallback(
-    async (columnId: ColumnId, title: string, description?: string) => {
+    async (columnId: ColumnId, title: string, description?: string, category?: Category) => {
       const trimmed = title.trim();
       if (!trimmed) return;
 
@@ -100,6 +102,7 @@ export function useBoard() {
         id,
         title: trimmed,
         description: description?.trim() || null,
+        category: category ?? null,
         column_id: columnId,
         created_at: Date.now(),
       };
@@ -176,7 +179,7 @@ export function useBoard() {
   );
 
   const editTask = useCallback(
-    async (id: string, title: string, description?: string) => {
+    async (id: string, title: string, description?: string, category?: Category) => {
       const trimmed = title.trim();
       if (!trimmed) return;
 
@@ -186,13 +189,13 @@ export function useBoard() {
         if (!task) return prev;
         return {
           ...prev,
-          [id]: { ...task, title: trimmed, description: description?.trim() || undefined },
+          [id]: { ...task, title: trimmed, description: description?.trim() || undefined, category },
         };
       });
 
       const { error } = await supabase
         .from("tasks")
-        .update({ title: trimmed, description: description?.trim() || null })
+        .update({ title: trimmed, description: description?.trim() || null, category: category ?? null })
         .eq("id", id);
 
       if (error) {

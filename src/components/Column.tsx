@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import type { ColumnId, ColumnMeta, Task, Tasks } from "../types";
+import type { Category, ColumnId, ColumnMeta, Task, Tasks } from "../types";
 import { TaskCard } from "./TaskCard";
 import { AddTaskButton } from "./AddTaskButton";
 import { cn } from "../lib/utils";
@@ -8,8 +8,8 @@ interface Props {
   column: ColumnMeta;
   tasks: Tasks;
   allTasks: Task[];
-  onAdd: (columnId: ColumnId, title: string, description?: string) => void;
-  onEdit: (id: string, title: string, description?: string) => void;
+  onAdd: (columnId: ColumnId, title: string, description?: string, category?: Category) => void;
+  onEdit: (id: string, title: string, description?: string, category?: Category) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, toColumn: ColumnId, toIndex?: number) => void;
   onDragStateChange: (id: string | null) => void;
@@ -119,7 +119,7 @@ export function Column({
 
         {column.id === "todo" && (
           <div className="mt-1">
-            <AddTaskButton columnId={column.id} onAdd={(title, desc) => onAdd(column.id, title, desc)} />
+            <AddTaskButton columnId={column.id} onAdd={(title, desc, category) => onAdd(column.id, title, desc, category)} />
           </div>
         )}
       </div>

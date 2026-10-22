@@ -1,17 +1,19 @@
 import { Plus, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { ColumnId } from "../types";
+import type { Category, ColumnId } from "../types";
+import { CATEGORIES } from "../types";
 import { cn } from "../lib/utils";
 
 interface Props {
   columnId: ColumnId;
-  onAdd: (title: string, description?: string) => void;
+  onAdd: (title: string, description?: string, category?: Category) => void;
 }
 
 export function AddTaskButton({ columnId, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<Category | undefined>(undefined);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -22,14 +24,16 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
     if (!open) {
       setTitle("");
       setDescription("");
+      setCategory(undefined);
     }
   }, [open]);
 
   const submit = () => {
     if (!title.trim()) return;
-    onAdd(title, description);
+    onAdd(title, description, category);
     setTitle("");
     setDescription("");
+    setCategory(undefined);
     inputRef.current?.focus();
   };
 
@@ -82,7 +86,33 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
         rows={2}
         className="mt-1 w-full resize-none bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
       />
-      <div className="mt-2 flex items-center gap-2">
+
+      {/* Category picker */}
+      <div className="mt-2.5">
+        <p className="mb-1.5 text-xs text-muted-foreground">Category</p>
+        <div className="flex flex-wrap gap-1.5">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategory(category === cat.id ? undefined : cat.id)}
+              className={cn(
+                "rounded-full px-2.5 py-0.5 text-xs font-medium transition-all duration-150",
+                cat.color,
+                cat.textColor,
+                category === cat.id
+                  ? "ring-2 ring-offset-1 ring-offset-card opacity-100"
+                  : "opacity-60 hover:opacity-100",
+                category === cat.id && cat.textColor.replace("text-", "ring-"),
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center gap-2">
         <button
           onClick={submit}
           className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
