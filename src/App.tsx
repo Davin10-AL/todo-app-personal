@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { KanbanSquare, Loader2, AlertCircle } from "lucide-react";
+import { KanbanSquare, Loader2, AlertCircle, Sun, Moon } from "lucide-react";
 import { COLUMNS, type Task } from "./types";
 import { useBoard } from "./hooks/useBoard";
+import { useTheme } from "./hooks/useTheme";
 import { Column } from "./components/Column";
 
 export default function App() {
   const { tasks, addTask, editTask, deleteTask, moveTask, loading, error } = useBoard();
+  const { theme, toggleTheme } = useTheme();
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const allTasks = useMemo<Task[]>(() => Object.values(tasks).sort((a, b) => a.createdAt - b.createdAt), [tasks]);
@@ -46,13 +48,23 @@ export default function App() {
             <p className="text-xs text-muted-foreground">{total} task{total === 1 ? "" : "s"} total</p>
           </div>
         </div>
-        <div className="hidden items-center gap-1.5 sm:flex">
-          {COLUMNS.map((c) => (
-            <span key={c.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className={`h-2 w-2 rounded-full ${c.accent}`} />
-              {c.title}: {allTasks.filter((t) => t.columnId === c.id).length}
-            </span>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-1.5 sm:flex">
+            {COLUMNS.map((c) => (
+              <span key={c.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${c.accent}`} />
+                {c.title}: {allTasks.filter((t) => t.columnId === c.id).length}
+              </span>
+            ))}
+            <div className="ml-3 h-4 w-px bg-border" />
+          </div>
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </div>
       </header>
 
