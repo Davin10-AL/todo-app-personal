@@ -22,6 +22,7 @@ export interface Task {
   title: string;
   description?: string;
   category?: Category;
+  dueDate?: string; // format ISO date: "YYYY-MM-DD"
   columnId: ColumnId;
   createdAt: number;
 }

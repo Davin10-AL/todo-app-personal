@@ -8,8 +8,8 @@ interface Props {
   column: ColumnMeta;
   tasks: Tasks;
   allTasks: Task[];
-  onAdd: (columnId: ColumnId, title: string, description?: string, category?: Category) => void;
-  onEdit: (id: string, title: string, description?: string, category?: Category) => void;
+  onAdd: (columnId: ColumnId, title: string, description?: string, category?: Category, dueDate?: string) => void;
+  onEdit: (id: string, title: string, description?: string, category?: Category, dueDate?: string) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, toColumn: ColumnId, toIndex?: number) => void;
   onDragStateChange: (id: string | null) => void;
@@ -119,7 +119,7 @@ export function Column({
 
         {column.id === "todo" && (
           <div className="mt-1">
-            <AddTaskButton columnId={column.id} onAdd={(title, desc, category) => onAdd(column.id, title, desc, category)} />
+            <AddTaskButton columnId={column.id} onAdd={(title, desc, category, dueDate) => onAdd(column.id, title, desc, category, dueDate)} />
           </div>
         )}
       </div>

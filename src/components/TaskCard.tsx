@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Trash2, CheckCircle2, Circle, CheckCheck, Pencil, X, Check } from "lucide-react";
+import { Trash2, CheckCircle2, Circle, CheckCheck, Pencil, X, Check, CalendarDays, AlertCircle } from "lucide-react";
 import type { Category, ColumnId, Task } from "../types";
 import { CATEGORIES } from "../types";
 import { cn } from "../lib/utils";
@@ -10,10 +10,48 @@ const NEXT_COLUMN: Record<ColumnId, ColumnId | null> = {
   done: null,
 };
 
+// Format "YYYY-MM-DDTHH:mm" → "DD MMM YYYY, HH:mm"
+function formatDate(iso: string): string {
+  const date = new Date(iso);
+  // Kalau string tidak ada "T" berarti format lama (date only)
+  const hasTime = iso.includes("T");
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    ...(hasTime && { hour: "2-digit", minute: "2-digit", hour12: false }),
+  });
+}
+
+// Cek apakah due date sudah lewat atau hari ini
+function getDueDateStatus(iso: string): "overdue" | "today" | "upcoming" {
+  const now = new Date();
+  const hasTime = iso.includes("T");
+  const due = new Date(iso);
+
+  if (!hasTime) {
+    // Hanya tanggal — bandingkan hari saja
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDay = new Date(due);
+    dueDay.setHours(0, 0, 0, 0);
+    if (dueDay < today) return "overdue";
+    if (dueDay.getTime() === today.getTime()) return "today";
+    return "upcoming";
+  }
+
+  // Ada jam — bandingkan exact datetime
+  if (due < now) return "overdue";
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  if (due <= todayEnd) return "today";
+  return "upcoming";
+}
+
 interface Props {
   task: Task;
   onDelete: (id: string) => void;
-  onEdit: (id: string, title: string, description?: string, category?: Category) => void;
+  onEdit: (id: string, title: string, description?: string, category?: Category, dueDate?: string) => void;
   onAdvance: (id: string, toColumn: ColumnId) => void;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onDragEnd: () => void;
@@ -40,6 +78,7 @@ export function TaskCard({
   const [editTitle, setEditTitle] = useState(task.title);
   const [editDesc, setEditDesc] = useState(task.description ?? "");
   const [editCategory, setEditCategory] = useState<Category | undefined>(task.category);
+  const [editDueDate, setEditDueDate] = useState(task.dueDate ?? "");
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -60,6 +99,7 @@ export function TaskCard({
     setEditTitle(task.title);
     setEditDesc(task.description ?? "");
     setEditCategory(task.category);
+    setEditDueDate(task.dueDate ?? "");
     setIsEditing(true);
   };
 
@@ -67,17 +107,18 @@ export function TaskCard({
 
   const submitEdit = () => {
     if (!editTitle.trim()) return;
-    onEdit(task.id, editTitle, editDesc, editCategory);
+    onEdit(task.id, editTitle, editDesc, editCategory, editDueDate || undefined);
     setIsEditing(false);
   };
 
   const nextColumn = NEXT_COLUMN[task.columnId];
   const isDone = task.columnId === "done";
   const CheckIcon = isDone ? CheckCheck : nextColumn ? Circle : CheckCircle2;
-
   const categoryMeta = task.category ? CATEGORIES.find((c) => c.id === task.category) : null;
 
-  // ── Edit mode ────────────────────────────────────────────────────────────
+  const dueDateStatus = task.dueDate && !isDone ? getDueDateStatus(task.dueDate) : null;
+
+  // ── Edit mode ─────────────────────────────────────────────────────────────
   if (isEditing) {
     return (
       <div
@@ -108,6 +149,20 @@ export function TaskCard({
           rows={2}
           className="mt-1 w-full resize-none bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
         />
+
+        {/* Due date */}
+        <div className="mt-2.5">
+          <p className="mb-1.5 text-xs text-muted-foreground">Due date & time (optional)</p>
+          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-2.5 py-1.5">
+            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <input
+              type="datetime-local"
+              value={editDueDate}
+              onChange={(e) => setEditDueDate(e.target.value)}
+              className="w-full bg-transparent text-xs text-foreground focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+            />
+          </div>
+        </div>
 
         {/* Category picker */}
         <div className="mt-2.5">
@@ -173,6 +228,7 @@ export function TaskCard({
         isDone && "opacity-70",
         isDragging && "opacity-40 scale-[0.98]",
         isDropTarget && "ring-2 ring-slate-400 ring-offset-2 ring-offset-background",
+        dueDateStatus === "overdue" && "border-red-300 dark:border-red-800",
       )}
     >
       <div className="flex items-start gap-2.5">
@@ -191,41 +247,62 @@ export function TaskCard({
           <CheckIcon className="h-4 w-4" />
         </button>
 
-        {/* Title, description, category badge */}
+        {/* Content */}
         <div className="min-w-0 flex-1">
-          <p
-            className={cn(
-              "text-sm font-medium leading-snug text-foreground",
-              isDone && "line-through text-muted-foreground",
-            )}
-          >
+          <p className={cn(
+            "text-sm font-medium leading-snug text-foreground",
+            isDone && "line-through text-muted-foreground",
+          )}>
             {task.title}
           </p>
+
           {task.description && (
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground line-clamp-3">
               {task.description}
             </p>
           )}
+
+          {/* Due date badge */}
+          {task.dueDate && (
+            <div className={cn(
+              "mt-2 flex items-center gap-1 text-[10px] font-medium",
+              dueDateStatus === "overdue" && "text-red-500",
+              dueDateStatus === "today"   && "text-amber-500",
+              dueDateStatus === "upcoming" && "text-muted-foreground",
+              isDone && "text-muted-foreground",
+            )}>
+              {dueDateStatus === "overdue" && !isDone
+                ? <AlertCircle className="h-3 w-3" />
+                : <CalendarDays className="h-3 w-3" />
+              }
+              <span>
+                {dueDateStatus === "overdue" && !isDone
+                  ? `Overdue · ${formatDate(task.dueDate)}`
+                  : dueDateStatus === "today" && !isDone
+                  ? `Due today · ${formatDate(task.dueDate)}`
+                  : formatDate(task.dueDate)
+                }
+              </span>
+            </div>
+          )}
+
+          {/* Category badge */}
           {categoryMeta && (
-            <span
-              className={cn(
-                "mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
-                categoryMeta.color,
-                categoryMeta.textColor,
-              )}
-            >
+            <span className={cn(
+              "mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium",
+              categoryMeta.color,
+              categoryMeta.textColor,
+            )}>
               {categoryMeta.label}
             </span>
           )}
         </div>
 
         {/* Edit & Delete buttons */}
-        <div
-          className={cn(
-            "flex shrink-0 items-center gap-0.5 transition-all duration-200",
-            showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-          )}
-        >
+        <div className={cn(
+          "flex shrink-0 items-center gap-0.5 transition-all duration-200",
+          showActions ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+        )}>
           <button
             onClick={openEdit}
             aria-label="Edit task"

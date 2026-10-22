@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { Plus, X, CalendarDays } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Category, ColumnId } from "../types";
 import { CATEGORIES } from "../types";
@@ -6,7 +6,7 @@ import { cn } from "../lib/utils";
 
 interface Props {
   columnId: ColumnId;
-  onAdd: (title: string, description?: string, category?: Category) => void;
+  onAdd: (title: string, description?: string, category?: Category, dueDate?: string) => void;
 }
 
 export function AddTaskButton({ columnId, onAdd }: Props) {
@@ -14,6 +14,7 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<Category | undefined>(undefined);
+  const [dueDate, setDueDate] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -25,15 +26,17 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
       setTitle("");
       setDescription("");
       setCategory(undefined);
+      setDueDate("");
     }
   }, [open]);
 
   const submit = () => {
     if (!title.trim()) return;
-    onAdd(title, description, category);
+    onAdd(title, description, category, dueDate || undefined);
     setTitle("");
     setDescription("");
     setCategory(undefined);
+    setDueDate("");
     inputRef.current?.focus();
   };
 
@@ -62,10 +65,7 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            submit();
-          }
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
           if (e.key === "Escape") setOpen(false);
         }}
         placeholder="Task title…"
@@ -76,16 +76,27 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            submit();
-          }
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); }
           if (e.key === "Escape") setOpen(false);
         }}
         placeholder="Description (optional)…"
         rows={2}
         className="mt-1 w-full resize-none bg-transparent text-xs text-muted-foreground placeholder:text-muted-foreground/60 focus:outline-none"
       />
+
+      {/* Due date */}
+      <div className="mt-2.5">
+        <p className="mb-1.5 text-xs text-muted-foreground">Due date & time (optional)</p>
+        <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/30 px-2.5 py-1.5">
+          <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <input
+            type="datetime-local"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="w-full bg-transparent text-xs text-foreground focus:outline-none [color-scheme:light] dark:[color-scheme:dark]"
+          />
+        </div>
+      </div>
 
       {/* Category picker */}
       <div className="mt-2.5">
@@ -126,9 +137,7 @@ export function AddTaskButton({ columnId, onAdd }: Props) {
           <X className="h-3 w-3" /> Cancel
         </button>
       </div>
-      <span className="sr-only" hidden>
-        {columnId}
-      </span>
+      <span className="sr-only" hidden>{columnId}</span>
     </div>
   );
 }

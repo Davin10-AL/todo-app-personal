@@ -13,6 +13,7 @@ function rowToTask(row: {
   title: string;
   description: string | null;
   category: string | null;
+  due_date: string | null;
   column_id: string;
   created_at: number;
 }): Task {
@@ -21,6 +22,7 @@ function rowToTask(row: {
     title: row.title,
     description: row.description ?? undefined,
     category: (row.category as Category) ?? undefined,
+    dueDate: row.due_date ?? undefined,
     columnId: row.column_id as ColumnId,
     createdAt: row.created_at,
   };
@@ -93,7 +95,7 @@ export function useBoard() {
   }, []);
 
   const addTask = useCallback(
-    async (columnId: ColumnId, title: string, description?: string, category?: Category) => {
+    async (columnId: ColumnId, title: string, description?: string, category?: Category, dueDate?: string) => {
       const trimmed = title.trim();
       if (!trimmed) return;
 
@@ -103,6 +105,7 @@ export function useBoard() {
         title: trimmed,
         description: description?.trim() || null,
         category: category ?? null,
+        due_date: dueDate ?? null,
         column_id: columnId,
         created_at: Date.now(),
       };
@@ -115,7 +118,6 @@ export function useBoard() {
 
       const { error } = await supabase.from("tasks").insert(newTask);
       if (error) {
-        // Rollback kalau gagal
         setTasks((prev) => {
           const next = { ...prev };
           delete next[id];
@@ -179,7 +181,7 @@ export function useBoard() {
   );
 
   const editTask = useCallback(
-    async (id: string, title: string, description?: string, category?: Category) => {
+    async (id: string, title: string, description?: string, category?: Category, dueDate?: string) => {
       const trimmed = title.trim();
       if (!trimmed) return;
 
@@ -189,13 +191,18 @@ export function useBoard() {
         if (!task) return prev;
         return {
           ...prev,
-          [id]: { ...task, title: trimmed, description: description?.trim() || undefined, category },
+          [id]: { ...task, title: trimmed, description: description?.trim() || undefined, category, dueDate },
         };
       });
 
       const { error } = await supabase
         .from("tasks")
-        .update({ title: trimmed, description: description?.trim() || null, category: category ?? null })
+        .update({
+          title: trimmed,
+          description: description?.trim() || null,
+          category: category ?? null,
+          due_date: dueDate ?? null,
+        })
         .eq("id", id);
 
       if (error) {
