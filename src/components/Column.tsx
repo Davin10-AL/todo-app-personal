@@ -9,6 +9,7 @@ interface Props {
   tasks: Tasks;
   allTasks: Task[];
   onAdd: (columnId: ColumnId, title: string, description?: string) => void;
+  onEdit: (id: string, title: string, description?: string) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, toColumn: ColumnId, toIndex?: number) => void;
   onDragStateChange: (id: string | null) => void;
@@ -20,6 +21,7 @@ export function Column({
   tasks,
   allTasks,
   onAdd,
+  onEdit,
   onDelete,
   onMove,
   onDragStateChange,
@@ -90,6 +92,7 @@ export function Column({
             <TaskCard
               task={task}
               onDelete={onDelete}
+              onEdit={onEdit}
               onAdvance={onMove}
               isDragging={draggingId === task.id}
               isDropTarget={dropIndex === index}

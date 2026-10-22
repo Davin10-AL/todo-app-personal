@@ -5,7 +5,7 @@ import { useBoard } from "./hooks/useBoard";
 import { Column } from "./components/Column";
 
 export default function App() {
-  const { tasks, addTask, deleteTask, moveTask, loading, error } = useBoard();
+  const { tasks, addTask, editTask, deleteTask, moveTask, loading, error } = useBoard();
   const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const allTasks = useMemo<Task[]>(() => Object.values(tasks).sort((a, b) => a.createdAt - b.createdAt), [tasks]);
@@ -65,6 +65,7 @@ export default function App() {
               tasks={tasks}
               allTasks={allTasks}
               onAdd={addTask}
+              onEdit={editTask}
               onDelete={deleteTask}
               onMove={moveTask}
               onDragStateChange={setDraggingId}

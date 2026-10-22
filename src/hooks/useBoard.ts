@@ -175,5 +175,32 @@ export function useBoard() {
     [],
   );
 
-  return { tasks, addTask, deleteTask, moveTask, loading, error };
+  const editTask = useCallback(
+    async (id: string, title: string, description?: string) => {
+      const trimmed = title.trim();
+      if (!trimmed) return;
+
+      // Optimistic update
+      setTasks((prev) => {
+        const task = prev[id];
+        if (!task) return prev;
+        return {
+          ...prev,
+          [id]: { ...task, title: trimmed, description: description?.trim() || undefined },
+        };
+      });
+
+      const { error } = await supabase
+        .from("tasks")
+        .update({ title: trimmed, description: description?.trim() || null })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Failed to edit task:", error.message);
+      }
+    },
+    [],
+  );
+
+  return { tasks, addTask, editTask, deleteTask, moveTask, loading, error };
 }
